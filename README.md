@@ -1,83 +1,108 @@
 # 💊 PharmacologyGPT
 
-> **An Enterprise-Style Hybrid Retrieval-Augmented Generation (Hybrid RAG) Assistant for Pharmacology and Drug Knowledge**
+> Enterprise-grade Hybrid RAG (Retrieval-Augmented Generation) assistant for pharmacology, drug information, FDA safety updates, and clinical knowledge.
 
-PharmacologyGPT is a production-oriented Hybrid RAG application that answers pharmacology-related questions using trusted textbook PDFs. It combines **semantic vector search (ChromaDB)** and **keyword search (BM25)** with **Reciprocal Rank Fusion (RRF)** to improve retrieval accuracy before generating grounded responses with **OpenAI GPT-5 Nano**.
-
----
-
-# 🚀 Features
-
-## ✅ Current Features (v1.1)
-
-- 📚 Multiple PDF knowledge base
-- 📄 Dynamic PDF upload
-- ✂️ Automatic document chunking
-- 🧠 OpenAI Embeddings (`text-embedding-3-small`)
-- 🗄️ Persistent Chroma Vector Database
-- 🔍 Vector Search using Maximum Marginal Relevance (MMR)
-- 🔎 BM25 Keyword Retrieval
-- 🔀 Hybrid Retrieval (Vector + BM25)
-- ⭐ Reciprocal Rank Fusion (RRF)
-- 🚫 Duplicate PDF Detection (SHA-256)
-- 🤖 GPT-5 Nano Answer Generation
-- 📖 Source Citation (PDF + Page Number)
-- 💻 Streamlit User Interface
+![Python](https://img.shields.io/badge/Python-3.13-blue)
+![LangChain](https://img.shields.io/badge/LangChain-Framework-green)
+![ChromaDB](https://img.shields.io/badge/ChromaDB-VectorDB-orange)
+![Streamlit](https://img.shields.io/badge/Streamlit-WebApp-red)
+![OpenAI](https://img.shields.io/badge/OpenAI-LLM-black)
+![License](https://img.shields.io/badge/License-MIT-lightgrey)
 
 ---
 
-# 🏗️ System Architecture
+## 🚀 Overview
+
+PharmacologyGPT is a production-oriented Hybrid Retrieval-Augmented Generation (RAG) application that combines textbook knowledge with real-time web search to answer pharmacology-related questions.
+
+The system intelligently routes user queries to:
+- 📚 Local knowledge base (pharmacology textbooks)
+- 🌐 Live web search
+- 🔀 Hybrid retrieval (local + web)
+
+---
+
+## ✨ Features
+
+- Hybrid Retrieval (Vector + BM25)
+- Intelligent Query Router
+- Query Intent Detection
+- Query Rewriting
+- Tavily Web Search
+- Context Fusion
+- OpenAI GPT Response Generation
+- Chroma Persistent Vector Database
+- User PDF Upload
+- Lazy Initialization
+- Modular LangChain Architecture
+- Streamlit Web Interface
+
+---
+
+## 🏗 System Architecture
 
 ```text
-                          User
-                            │
-                            ▼
-                    Streamlit Web App
-                            │
-                            ▼
-                    User Question
-                            │
-                ┌───────────┴───────────┐
-                │                       │
-                ▼                       ▼
-        Chroma Vector Search      BM25 Keyword Search
-            (MMR Retriever)         (Exact Matching)
-                │                       │
-                └───────────┬───────────┘
-                            ▼
-             Reciprocal Rank Fusion (RRF)
-                            │
-                  Top Relevant Chunks
-                            │
-                            ▼
-                  GPT-5 Nano (OpenAI)
-                            │
-                            ▼
-               Grounded Answer + Citations
+                 User
+                   │
+                   ▼
+              Streamlit UI
+                   │
+                   ▼
+              Query Router
+        ┌──────────┼──────────┐
+        │          │          │
+        ▼          ▼          ▼
+     Local       Web       Hybrid
+        │          │          │
+        └──────┬───┴──────────┘
+               ▼
+        Context Fusion
+               ▼
+        OpenAI GPT Model
+               ▼
+          Final Response
 ```
 
 ---
 
-# 📂 Project Structure
+## 🛠 Technology Stack
+
+| Category | Technology |
+|-----------|------------|
+| Language | Python 3.13 |
+| Framework | LangChain |
+| UI | Streamlit |
+| Vector Database | ChromaDB |
+| Embeddings | OpenAI text-embedding-3-small |
+| LLM | OpenAI GPT |
+| Web Search | Tavily |
+| Hybrid Search | Vector + BM25 |
+| PDF Processing | PyPDF |
+| Environment | Python Dotenv |
+
+---
+
+## 📂 Project Structure
 
 ```text
-PharmacologyGPT-RAG/
+PharmacologyGPT/
 │
-├── docs/                          # Pharmacology PDFs
+├── app.py
+├── rag.py
+├── vector_store.py
+├── build_vector_db.py
+├── pdf_utils.py
+├── hybrid_retriever.py
+├── router.py
+├── query_intent.py
+├── query_rewriter.py
+├── web_search.py
+├── context_fusion.py
+├── inspect_vector_db.py
 │
-├── vector/                        # Persistent Chroma database
-│
+├── docs/
+├── vector/
 ├── test/
-│   ├── __init__.py
-│   ├── test_bm25_retrieval.py
-│   └── test_hybrid_retrieval.py
-│
-├── app.py                         # Streamlit application
-├── rag.py                         # Production Hybrid RAG pipeline
-├── hybrid_retriever.py            # BM25 + Vector + RRF
-├── build_vector_db.py             # Vector database builder
-├── pdf_utils.py                   # PDF processing utilities
-├── inspect_vector_db.py           # Database inspection utility
 │
 ├── requirements.txt
 ├── .env.example
@@ -86,61 +111,23 @@ PharmacologyGPT-RAG/
 
 ---
 
-# ⚙️ Technologies Used
+## ⚙ Installation
 
-## Programming Language
-
-- Python 3.13
-
-## LLM
-
-- OpenAI GPT-5 Nano
-
-## Embeddings
-
-- text-embedding-3-small
-
-## Vector Database
-
-- ChromaDB
-
-## Retrieval
-
-- Vector Search (MMR)
-- BM25
-- Reciprocal Rank Fusion (RRF)
-
-## Frameworks
-
-- LangChain
-- Streamlit
-
-## Document Processing
-
-- PyPDF
-- Recursive Character Text Splitter
-
----
-
-# 📦 Installation
-
-## 1. Clone Repository
+Clone the repository
 
 ```bash
-git clone https://github.com/marufasumi/PharmacologyGPT-RAG.git
+git clone https://github.com/<your-username>/PharmacologyGPT.git
 
-cd PharmacologyGPT-RAG
+cd PharmacologyGPT
 ```
 
----
-
-## 2. Create Virtual Environment
+Create virtual environment
 
 ```bash
 python -m venv .venv
 ```
 
-Activate
+Activate environment
 
 ### macOS/Linux
 
@@ -154,9 +141,7 @@ source .venv/bin/activate
 .venv\Scripts\activate
 ```
 
----
-
-## 3. Install Dependencies
+Install dependencies
 
 ```bash
 pip install -r requirements.txt
@@ -164,17 +149,21 @@ pip install -r requirements.txt
 
 ---
 
-## 4. Configure Environment
+## 🔑 Environment Variables
 
 Create a `.env` file.
 
 ```env
 OPENAI_API_KEY=your_openai_api_key
+
+TAVILY_API_KEY=your_tavily_api_key
+
+VECTOR_ARCHIVE_URL=github_release_asset_url
 ```
 
 ---
 
-## 5. Build Vector Database
+## 📚 Build Vector Database
 
 ```bash
 python build_vector_db.py
@@ -182,7 +171,7 @@ python build_vector_db.py
 
 ---
 
-## 6. Launch Application
+## ▶ Run Application
 
 ```bash
 streamlit run app.py
@@ -190,172 +179,155 @@ streamlit run app.py
 
 ---
 
-# 💬 Example Questions
+## 💡 Example Queries
+
+### Local Knowledge
 
 - What is the mechanism of action of metformin?
-- Why do ACE inhibitors cause cough?
-- How does succinylcholine produce neuromuscular blockade?
-- What are the adverse effects of digoxin?
-- What drugs inhibit CYP3A4?
-- Explain beta-2 agonists.
+- What are the adverse effects of warfarin?
+- Explain insulin pharmacology.
+
+### Web Search
+
+- What is the latest FDA warning for semaglutide?
+- Latest clinical trial for tirzepatide.
+- Recent GLP-1 safety updates.
+
+### Hybrid Retrieval
+
+- Compare metformin pharmacology with recent safety evidence.
+- Explain Ozempic using textbook knowledge and current FDA guidance.
+- Compare warfarin interactions with current prescribing recommendations.
 
 ---
 
-# 🔍 Retrieval Pipeline
+## 🧪 Test Suite
 
-## Step 1
+Run individual validation scripts:
 
-User submits a question.
+```bash
+python -m test.test_router
 
-↓
+python -m test.test_query_intent
 
-## Step 2
+python -m test.test_query_rewriter
 
-Vector Retriever (Chroma MMR)
+python -m test.test_web_search
 
-↓
+python -m test.test_routed_context
 
-## Step 3
-
-BM25 Keyword Retriever
-
-↓
-
-## Step 4
-
-Reciprocal Rank Fusion
-
-↓
-
-## Step 5
-
-Top 5 unique chunks
-
-↓
-
-## Step 6
-
-GPT-5 Nano generates a grounded response.
-
-↓
-
-## Step 7
-
-Display answer with source citations.
+python -m test.test_routed_answer
+```
 
 ---
 
-# 📈 Current Version
+## 📈 Version History
 
-## ✅ v1.1.0
+### Version 1.0
+- Basic RAG
+- ChromaDB
+- Streamlit
 
-Implemented:
+### Version 1.1
+- Persistent Vector Database
 
+### Version 1.2
+- PDF Upload
+- Dynamic Knowledge Base
+
+### Version 1.3
 - Hybrid Retrieval
-- BM25
-- Reciprocal Rank Fusion
-- Hybrid Retriever Module
-- End-to-End Testing
-- Streamlit Integration
+- BM25 Search
+- Query Router
+- Query Intent Detection
+- Query Rewriting
+- Web Search
+- Context Fusion
+
+### Version 1.4
+- Shared Vector Store
+- Lazy Initialization
+- Modular Architecture
+- Deployment Configuration
+- Production Refactoring
 
 ---
 
-# 🛣️ Future Roadmap
+## 🚀 Roadmap
 
-## v1.2
-
-- Web Search Integration
-- Local + Web Context Fusion
-- Intelligent Question Routing
-
----
-
-## v1.3
-
-- RAG Evaluation
-- RAGAS
-- DeepEval
-- Retrieval Metrics
-
----
-
-## v1.4
-
-- LangGraph Agent Workflow
-- Multi-step Reasoning
-- Tool Calling
-
----
-
-## v1.5
-
-- Multi-turn Conversation Memory
-- Session Context
-- Chat History
-
----
-
-## v1.6
+### Version 2.0
 
 - FastAPI Backend
-- REST API
-- Swagger Documentation
-
----
-
-## v1.7
-
+- Authentication
 - Docker
-- Cloud Deployment
 - CI/CD
-- Production Monitoring
+- PostgreSQL + pgvector
+- RAG Evaluation (RAGAS / DeepEval)
+- Monitoring & Logging
+- API Deployment
 
 ---
 
-# 📊 Project Highlights
+## 📷 Demo
 
-✔ Enterprise-style Hybrid RAG
+### Home Page
 
-✔ Production-oriented Architecture
+> _Add screenshot_
 
-✔ Modular Python Codebase
+### Hybrid Retrieval Example
 
-✔ Persistent Vector Database
+> _Add screenshot_
 
-✔ Hybrid Search
+### Web Search Example
 
-✔ Explainable Retrieval
-
-✔ Source Citations
-
-✔ Retrieval Evaluation Ready
+> _Add screenshot_
 
 ---
 
-# 👨‍💻 Author
+## 📦 Deployment
+
+### Local
+
+```bash
+streamlit run app.py
+```
+
+### Streamlit Community Cloud
+
+1. Push repository to GitHub.
+2. Deploy from Streamlit Community Cloud.
+3. Configure secrets:
+   - `OPENAI_API_KEY`
+   - `TAVILY_API_KEY`
+   - `VECTOR_ARCHIVE_URL`
+4. Launch the application.
+
+---
+
+## 🤝 Contributing
+
+Contributions, feature requests, and suggestions are welcome.
+
+1. Fork the repository.
+2. Create a feature branch.
+3. Commit your changes.
+4. Open a Pull Request.
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+---
+
+## 👤 Author
 
 **Marufa Sultana Sumi**
 
-MS in Information, University of Michigan
-
-Healthcare Data Science | AI | Data Engineering | Generative AI
-
-GitHub:
-https://github.com/marufasumi
-
-LinkedIn:
-https://www.linkedin.com/in/marufasumi/
+- LinkedIn: https://linkedin.com/in/marufasumi
+- GitHub: https://github.com/marufasumi
 
 ---
 
-# ⭐ Acknowledgements
-
-This project was built as part of my learning journey in:
-
-- Retrieval-Augmented Generation (RAG)
-- Large Language Models (LLMs)
-- Information Retrieval
-- Generative AI
-- Production AI System Design
-
-The architecture is designed to evolve into an enterprise-grade AI assistant capable of combining local knowledge bases, web search, evaluation frameworks, agent workflows, and cloud deployment.
+⭐ If you found this project helpful, please consider giving it a star.
