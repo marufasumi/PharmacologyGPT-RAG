@@ -1,4 +1,4 @@
-# 💊 PharmacologyGPT
+# 💊 PharmacologyGPT [![Live Demo](https://img.shields.io/badge/Live_Demo-Streamlit-red?style=for-the-badge&logo=streamlit)](https://pharmacologygpt.streamlit.app)
 
 > Enterprise-grade Hybrid RAG (Retrieval-Augmented Generation) assistant for pharmacology, drug information, FDA safety updates, and clinical knowledge.
 
@@ -8,7 +8,7 @@
 ![Streamlit](https://img.shields.io/badge/Streamlit-WebApp-red)
 ![OpenAI](https://img.shields.io/badge/OpenAI-LLM-black)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
-[![Live Demo](https://img.shields.io/badge/Live_Demo-Streamlit-red?style=for-the-badge&logo=streamlit)](https://pharmacologygpt.streamlit.app)
+
 
 ---
 
