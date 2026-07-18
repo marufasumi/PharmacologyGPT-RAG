@@ -1,334 +1,90 @@
-# 💊 PharmacologyGPT [![Live Demo](https://img.shields.io/badge/Live_Demo-Streamlit-red?style=for-the-badge&logo=streamlit)](https://pharmacologygpt.streamlit.app)
+# 💊 PharmacologyGPT
 
-> Enterprise-grade Hybrid RAG (Retrieval-Augmented Generation) assistant for pharmacology, drug information, FDA safety updates, and clinical knowledge.
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Streamlit-red?style=for-the-badge&logo=streamlit)](https://pharmacologygpt.streamlit.app)
+
+Enterprise-grade **Hybrid Retrieval-Augmented Generation (Hybrid RAG)** assistant that combines trusted pharmacology textbooks with real-time web search to answer drug information, FDA safety updates, and clinical pharmacology questions.
 
 ![Python](https://img.shields.io/badge/Python-3.13-blue)
 ![LangChain](https://img.shields.io/badge/LangChain-Framework-green)
 ![ChromaDB](https://img.shields.io/badge/ChromaDB-VectorDB-orange)
-![Streamlit](https://img.shields.io/badge/Streamlit-WebApp-red)
-![OpenAI](https://img.shields.io/badge/OpenAI-LLM-black)
+![OpenAI](https://img.shields.io/badge/OpenAI-GPT--5-black)
+![Streamlit](https://img.shields.io/badge/Streamlit-Cloud-red)
 ![License](https://img.shields.io/badge/License-MIT-lightgrey)
 
+## ⭐ Key Highlights
 
----
+- Enterprise-style Hybrid RAG architecture
+- Intelligent query routing (Local • Web • Hybrid)
+- BM25 + Vector Search with Reciprocal Rank Fusion (RRF)
+- Modular LangChain pipeline
+- Persistent ChromaDB knowledge base
+- Cloud deployment on Streamlit
+- Live FDA safety updates via Tavily Search
 
-## 🚀 Overview
+## 🏗️ System Architecture
 
-PharmacologyGPT is a production-oriented Hybrid Retrieval-Augmented Generation (RAG) application that combines textbook knowledge with real-time web search to answer pharmacology-related questions.
-
-The system intelligently routes user queries to:
-- 📚 Local knowledge base (pharmacology textbooks)
-- 🌐 Live web search
-- 🔀 Hybrid retrieval (local + web)
-
----
+<p align="center">
+<img src="docs/images/architecture.png" width="900">
+</p>
 
 ## ✨ Features
 
 - Hybrid Retrieval (Vector + BM25)
-- Intelligent Query Router
+- Intelligent Query Routing
 - Query Intent Detection
 - Query Rewriting
-- Tavily Web Search
 - Context Fusion
-- OpenAI GPT Response Generation
-- Chroma Persistent Vector Database
+- Local PDF Knowledge Base
+- Live Web Search
 - User PDF Upload
-- Lazy Initialization
-- Modular LangChain Architecture
-- Streamlit Web Interface
+- Persistent ChromaDB Storage
+- Cloud Deployment
 
----
+## 🛠️ Technology Stack
 
-## 🏗 System Architecture
-
-```text
-                 User
-                   │
-                   ▼
-              Streamlit UI
-                   │
-                   ▼
-              Query Router
-        ┌──────────┼──────────┐
-        │          │          │
-        ▼          ▼          ▼
-     Local       Web       Hybrid
-        │          │          │
-        └──────┬───┴──────────┘
-               ▼
-        Context Fusion
-               ▼
-        OpenAI GPT Model
-               ▼
-          Final Response
-```
-
----
-
-## 🛠 Technology Stack
-
-| Category | Technology |
-|-----------|------------|
-| Language | Python 3.13 |
-| Framework | LangChain |
-| UI | Streamlit |
-| Vector Database | ChromaDB |
-| Embeddings | OpenAI text-embedding-3-small |
-| LLM | OpenAI GPT |
-| Web Search | Tavily |
-| Hybrid Search | Vector + BM25 |
-| PDF Processing | PyPDF |
-| Environment | Python Dotenv |
-
----
-
-## 📂 Project Structure
-
-```text
-PharmacologyGPT/
-│
-├── app.py
-├── rag.py
-├── vector_store.py
-├── build_vector_db.py
-├── pdf_utils.py
-├── hybrid_retriever.py
-├── router.py
-├── query_intent.py
-├── query_rewriter.py
-├── web_search.py
-├── context_fusion.py
-├── inspect_vector_db.py
-│
-├── docs/
-├── vector/
-├── test/
-│
-├── requirements.txt
-├── .env.example
-└── README.md
-```
-
----
-
-## ⚙ Installation
-
-Clone the repository
-
-```bash
-git clone https://github.com/<your-username>/PharmacologyGPT.git
-
-cd PharmacologyGPT
-```
-
-Create virtual environment
-
-```bash
-python -m venv .venv
-```
-
-Activate environment
-
-### macOS/Linux
-
-```bash
-source .venv/bin/activate
-```
-
-### Windows
-
-```bash
-.venv\Scripts\activate
-```
-
-Install dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
----
-
-## 🔑 Environment Variables
-
-Create a `.env` file.
-
-```env
-OPENAI_API_KEY=your_openai_api_key
-
-TAVILY_API_KEY=your_tavily_api_key
-
-VECTOR_ARCHIVE_URL=github_release_asset_url
-```
-
----
-
-## 📚 Build Vector Database
-
-```bash
-python build_vector_db.py
-```
-
----
-
-## ▶ Run Application
-
-```bash
-streamlit run app.py
-```
-
----
-
-## 💡 Example Queries
-
-### Local Knowledge
-
-- What is the mechanism of action of metformin?
-- What are the adverse effects of warfarin?
-- Explain insulin pharmacology.
-
-### Web Search
-
-- What is the latest FDA warning for semaglutide?
-- Latest clinical trial for tirzepatide.
-- Recent GLP-1 safety updates.
-
-### Hybrid Retrieval
-
-- Compare metformin pharmacology with recent safety evidence.
-- Explain Ozempic using textbook knowledge and current FDA guidance.
-- Compare warfarin interactions with current prescribing recommendations.
-
----
-
-## 🧪 Test Suite
-
-Run individual validation scripts:
-
-```bash
-python -m test.test_router
-
-python -m test.test_query_intent
-
-python -m test.test_query_rewriter
-
-python -m test.test_web_search
-
-python -m test.test_routed_context
-
-python -m test.test_routed_answer
-```
-
----
-
-## 📈 Version History
-
-### Version 1.0
-- Basic RAG
-- ChromaDB
+**Core**
+- Python
+- LangChain
 - Streamlit
 
-### Version 1.1
-- Persistent Vector Database
+**Retrieval**
+- ChromaDB
+- BM25
+- Reciprocal Rank Fusion (RRF)
 
-### Version 1.2
-- PDF Upload
-- Dynamic Knowledge Base
+**LLM**
+- GPT-5 Nano
+- text-embedding-3-small
 
-### Version 1.3
-- Hybrid Retrieval
-- BM25 Search
-- Query Router
-- Query Intent Detection
-- Query Rewriting
-- Web Search
-- Context Fusion
+**Search**
+- Tavily Search
 
-### Version 1.4
-- Shared Vector Store
-- Lazy Initialization
-- Modular Architecture
-- Deployment Configuration
-- Production Refactoring
+**Document Processing**
+- PyPDF
 
----
-
-## 🚀 Roadmap
-
-### Version 2.0
-
-- FastAPI Backend
-- Authentication
-- Docker
-- CI/CD
-- PostgreSQL + pgvector
-- RAG Evaluation (RAGAS / DeepEval)
-- Monitoring & Logging
-- API Deployment
-
----
-
-## 📷 Demo
+## 📸 Application Preview
 
 ### Home Page
 
-> _Add screenshot_
+![Home](docs/images/home.png)
 
-### Hybrid Retrieval Example
+### Local Knowledge Retrieval
 
-> _Add screenshot_
+![Local](docs/images/local.png)
 
-### Web Search Example
+### Live Web Search
 
-> _Add screenshot_
+![Web](docs/images/web.png)
 
----
 
-## 📦 Deployment
-
-### Local
+## 🚀 Quick Start
 
 ```bash
+git clone https://github.com/marufasumi/PharmacologyGPT-RAG.git
+
+cd PharmacologyGPT-RAG
+
+pip install -r requirements.txt
+
 streamlit run app.py
-```
 
-### Streamlit Community Cloud
-
-1. Push repository to GitHub.
-2. Deploy from Streamlit Community Cloud.
-3. Configure secrets:
-   - `OPENAI_API_KEY`
-   - `TAVILY_API_KEY`
-   - `VECTOR_ARCHIVE_URL`
-4. Launch the application.
-
----
-
-## 🤝 Contributing
-
-Contributions, feature requests, and suggestions are welcome.
-
-1. Fork the repository.
-2. Create a feature branch.
-3. Commit your changes.
-4. Open a Pull Request.
-
----
-
-## 📄 License
-
-This project is licensed under the MIT License.
-
----
-
-## 👤 Author
-
-**Marufa Sultana Sumi**
-
-- LinkedIn: https://linkedin.com/in/marufasumi
-- GitHub: https://github.com/marufasumi
-
----
-
-⭐ If you found this project helpful, please consider giving it a star.
