@@ -1,0 +1,22 @@
+# Application
+streamlit==1.59.2
+
+# LangChain core and integrations
+langchain-core==1.4.7
+langchain-openai==1.3.2
+langchain-chroma==1.1.0
+langchain-community==0.4.2
+langchain-classic==1.0.8
+langchain-text-splitters==1.1.2
+
+# Vector database and retrieval
+chromadb==1.5.9
+rank-bm25==0.2.2
+
+# Document processing
+pypdf==6.13.3
+
+# Configuration and web search
+python-dotenv==1.2.2
+requests==2.34.2
+tavily-python==0.7.26

@@ -1,108 +1,164 @@
-from dotenv import load_dotenv
+"""
+PharmacologyGPT RAG Pipeline
 
-from langchain_openai import ChatOpenAI
-from langchain_openai import OpenAIEmbeddings
-from langchain_chroma import Chroma
+This module provides:
+
+1. Lazy initialization of retrieval and language-model resources
+2. Hybrid local retrieval using Chroma and BM25
+3. Question routing between local knowledge and web search
+4. Context fusion
+5. Grounded answer generation
+"""
+
+from functools import lru_cache
+
+from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda
+from langchain_openai import ChatOpenAI
 
 from langchain_classic.chains import create_retrieval_chain
 from langchain_classic.chains.combine_documents import (
     create_stuff_documents_chain,
 )
 
+from context_fusion import build_fused_context
 from hybrid_retriever import (
     create_bm25_retriever,
     load_documents_from_chroma,
     retrieve_hybrid_documents,
 )
-from context_fusion import build_fused_context
-from router import route_question
-from web_search import search_web
 from query_rewriter import rewrite_web_query
+from router import route_question
+from vector_store import get_vectorstore
+from web_search import search_web
 
 
-# ------------------------------------------------------------
-# Load environment variables
-# ------------------------------------------------------------
+# Load variables from the local .env file when available.
 load_dotenv()
 
 
-# ------------------------------------------------------------
-# Reopen the existing Chroma vector database
-# ------------------------------------------------------------
-embedding_model = OpenAIEmbeddings(
-    model="text-embedding-3-small"
-)
+# ============================================================
+# Lazy local retrieval resources
+# ============================================================
 
-vectorstore = Chroma(
-    collection_name="pharmacology_books",
-    persist_directory="./vector",
-    embedding_function=embedding_model,
-)
+@lru_cache(maxsize=1)
+def get_vector_retriever():
+    """
+    Create and return the shared Chroma vector retriever.
 
+    The retriever is created only when local retrieval is first
+    requested. Later calls reuse the cached instance.
+    """
 
-# ------------------------------------------------------------
-# Create the Chroma vector retriever
-# ------------------------------------------------------------
-# Retrieve a larger candidate pool before hybrid rank fusion.
-vector_retriever = vectorstore.as_retriever(
-    search_type="mmr",
-    search_kwargs={
-        "k": 10,
-        "fetch_k": 30,
-        "lambda_mult": 0.7,
-    },
-)
+    vectorstore = get_vectorstore()
+
+    return vectorstore.as_retriever(
+        search_type="mmr",
+        search_kwargs={
+            "k": 10,
+            "fetch_k": 30,
+            "lambda_mult": 0.7,
+        },
+    )
 
 
-# ------------------------------------------------------------
-# Reconstruct the stored documents for BM25
-# ------------------------------------------------------------
-documents = load_documents_from_chroma(
-    vectorstore=vectorstore,
-)
+@lru_cache(maxsize=1)
+def get_bm25_retriever():
+    """
+    Reconstruct stored Chroma documents and create the shared
+    BM25 keyword retriever.
+
+    This operation is deferred until local retrieval is needed.
+    """
+
+    vectorstore = get_vectorstore()
+
+    documents = load_documents_from_chroma(
+        vectorstore=vectorstore,
+    )
+
+    return create_bm25_retriever(
+        documents=documents,
+        result_count=10,
+    )
 
 
-# ------------------------------------------------------------
-# Create the BM25 keyword retriever
-# ------------------------------------------------------------
-bm25_retriever = create_bm25_retriever(
-    documents=documents,
-    result_count=10,
-)
+# ============================================================
+# Lazy language-model resource
+# ============================================================
+
+@lru_cache(maxsize=1)
+def get_llm() -> ChatOpenAI:
+    """
+    Create and return the shared language model.
+
+    The OpenAI client is initialized only when answer generation
+    is first requested.
+    """
+
+    return ChatOpenAI(
+        model="gpt-5-nano",
+        temperature=0,
+    )
 
 
-# ------------------------------------------------------------
-# Create the hybrid retrieval function
-# ------------------------------------------------------------
+# ============================================================
+# Hybrid retrieval
+# ============================================================
+
 def run_hybrid_retrieval(chain_input: dict):
     """
-    Extract the user's question from the retrieval-chain input
+    Extract the user's question from a LangChain retrieval input
     and run hybrid vector plus BM25 retrieval.
+
+    Parameters
+    ----------
+    chain_input : dict
+        LangChain input containing the user's question under
+        the key ``input``.
+
+    Returns
+    -------
+    list
+        Ranked LangChain documents.
     """
 
-    query = chain_input.get("input", "")
+    query = chain_input.get("input", "").strip()
+
+    if not query:
+        return []
 
     return retrieve_hybrid_documents(
         query=query,
-        vector_retriever=vector_retriever,
-        bm25_retriever=bm25_retriever,
+        vector_retriever=get_vector_retriever(),
+        bm25_retriever=get_bm25_retriever(),
         vector_weight=0.5,
         bm25_weight=0.5,
         final_result_count=5,
     )
 
 
+# ============================================================
+# Routed context retrieval
+# ============================================================
+
 def retrieve_routed_context(question: str) -> dict:
     """
-    Route the user's question and retrieve the appropriate context.
+    Route the user's question and retrieve appropriate context.
 
-    Possible routes:
-    - local: Hybrid retrieval only.
-    - web: Web search only.
-    - both: Hybrid retrieval and web search.
+    Possible routes
+    ---------------
+    local
+        Hybrid Chroma and BM25 retrieval only.
+
+    web
+        Web search only.
+
+    both
+        Hybrid local retrieval and web search.
     """
+
     cleaned_question = question.strip()
 
     if not cleaned_question:
@@ -115,51 +171,65 @@ def retrieve_routed_context(question: str) -> dict:
     rewritten_query = None
     query_intent = None
 
-
-    # Retrieve documents from the local vector database.
+    # Local resources are initialized only for local or both routes.
     if route in {"local", "both"}:
         local_documents = retrieve_hybrid_documents(
             query=cleaned_question,
-            vector_retriever=vector_retriever,
-            bm25_retriever=bm25_retriever,
+            vector_retriever=get_vector_retriever(),
+            bm25_retriever=get_bm25_retriever(),
             vector_weight=0.5,
             bm25_weight=0.5,
             final_result_count=5,
         )
 
-    # Rewrite the query before performing a web search.
+    # Web search resources are used only for web or both routes.
     if route in {"web", "both"}:
-        rewritten_query , query_intent = rewrite_web_query(cleaned_question)
+        rewritten_query, query_intent = rewrite_web_query(
+            cleaned_question
+        )
 
         web_results = search_web(
             query=rewritten_query,
             max_results=5,
         )
 
-    # Combine local and web context into a single prompt context.
     fused_context = build_fused_context(
         local_documents=local_documents,
         web_results=web_results,
     )
 
     return {
-    "route": route,
-    "query_intent": (
-        query_intent.value
-        if query_intent is not None
-        else None
-    ),
-    "rewritten_query": rewritten_query,
-    "local_documents": local_documents,
-    "web_results": web_results,
-    "fused_context": fused_context,
-}
+        "route": route,
+        "query_intent": (
+            query_intent.value
+            if query_intent is not None
+            else None
+        ),
+        "rewritten_query": rewritten_query,
+        "local_documents": local_documents,
+        "web_results": web_results,
+        "fused_context": fused_context,
+    }
+
+
+# ============================================================
+# Routed answer generation
+# ============================================================
+
 def answer_routed_question(question: str) -> dict:
     """
-    Route a question, retrieve the correct context, and generate
-    a grounded answer using GPT-5 Nano.
+    Route a question, retrieve relevant context, and generate
+    a grounded answer.
     """
-    retrieval_result = retrieve_routed_context(question)
+
+    cleaned_question = question.strip()
+
+    if not cleaned_question:
+        raise ValueError("Question cannot be empty.")
+
+    retrieval_result = retrieve_routed_context(
+        cleaned_question
+    )
 
     answer_prompt = ChatPromptTemplate.from_messages(
         [
@@ -182,45 +252,53 @@ Context:
 {context}
 """,
             ),
-            ("human", "{question}"),
+            (
+                "human",
+                "{question}",
+            ),
         ]
     )
 
-    answer_chain = answer_prompt | llm
+    answer_chain = answer_prompt | get_llm()
 
     response = answer_chain.invoke(
         {
-            "question": question,
+            "question": cleaned_question,
             "context": retrieval_result["fused_context"],
         }
     )
+
     return {
         "answer": response.content,
         "route": retrieval_result["route"],
-        "query_intent": retrieval_result["query_intent"], 
+        "query_intent": retrieval_result["query_intent"],
         "rewritten_query": retrieval_result["rewritten_query"],
         "local_documents": retrieval_result["local_documents"],
         "web_results": retrieval_result["web_results"],
         "fused_context": retrieval_result["fused_context"],
-  }
-# Convert the Python retrieval function into a LangChain Runnable.
-# create_retrieval_chain can use this object like a normal retriever.
-retriever = RunnableLambda(run_hybrid_retrieval)
+    }
 
 
-# ------------------------------------------------------------
-# Create the language model
-# ------------------------------------------------------------
-llm = ChatOpenAI(
-    model="gpt-5-nano",
-    temperature=0,
-)
+# ============================================================
+# Traditional local-only RAG chain
+# ============================================================
+
+@lru_cache(maxsize=1)
+def get_retriever_runnable() -> RunnableLambda:
+    """
+    Return the cached LangChain runnable used for hybrid retrieval.
+    """
+
+    return RunnableLambda(run_hybrid_retrieval)
 
 
-# ------------------------------------------------------------
-# Create the RAG prompt
-# ------------------------------------------------------------
-system_message = """
+@lru_cache(maxsize=1)
+def get_rag_prompt() -> ChatPromptTemplate:
+    """
+    Create and return the local-document RAG prompt.
+    """
+
+    system_message = """
 You are PharmacologyGPT, a pharmacology question-answering assistant.
 
 Answer the user's question using only the provided context.
@@ -236,27 +314,39 @@ Context:
 {context}
 """
 
-rag_prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", system_message),
-        ("human", "{input}"),
-    ]
-)
+    return ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                system_message,
+            ),
+            (
+                "human",
+                "{input}",
+            ),
+        ]
+    )
 
 
-# ------------------------------------------------------------
-# Create the document-answering chain
-# ------------------------------------------------------------
-document_chain = create_stuff_documents_chain(
-    llm=llm,
-    prompt=rag_prompt,
-)
+@lru_cache(maxsize=1)
+def get_document_chain():
+    """
+    Create and return the cached document-answering chain.
+    """
+
+    return create_stuff_documents_chain(
+        llm=get_llm(),
+        prompt=get_rag_prompt(),
+    )
 
 
-# ------------------------------------------------------------
-# Connect the hybrid retriever and document chain
-# ------------------------------------------------------------
-rag_chain = create_retrieval_chain(
-    retriever,
-    document_chain,
-)
+@lru_cache(maxsize=1)
+def get_rag_chain():
+    """
+    Create and return the complete cached local RAG chain.
+    """
+
+    return create_retrieval_chain(
+        get_retriever_runnable(),
+        get_document_chain(),
+    )

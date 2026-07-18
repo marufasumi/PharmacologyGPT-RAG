@@ -63,3 +63,5 @@ docs/*.pdf
 
 # Keep the docs folder
 !docs/.gitkeep
+
+release_assets/
