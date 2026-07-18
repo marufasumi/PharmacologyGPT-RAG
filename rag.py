@@ -113,6 +113,8 @@ def retrieve_routed_context(question: str) -> dict:
     local_documents = []
     web_results = []
     rewritten_query = None
+    query_intent = None
+
 
     # Retrieve documents from the local vector database.
     if route in {"local", "both"}:
@@ -127,7 +129,7 @@ def retrieve_routed_context(question: str) -> dict:
 
     # Rewrite the query before performing a web search.
     if route in {"web", "both"}:
-        rewritten_query = rewrite_web_query(cleaned_question)
+        rewritten_query , query_intent = rewrite_web_query(cleaned_question)
 
         web_results = search_web(
             query=rewritten_query,
@@ -141,12 +143,17 @@ def retrieve_routed_context(question: str) -> dict:
     )
 
     return {
-        "route": route,
-        "rewritten_query": rewritten_query,
-        "local_documents": local_documents,
-        "web_results": web_results,
-        "fused_context": fused_context,
-    }
+    "route": route,
+    "query_intent": (
+        query_intent.value
+        if query_intent is not None
+        else None
+    ),
+    "rewritten_query": rewritten_query,
+    "local_documents": local_documents,
+    "web_results": web_results,
+    "fused_context": fused_context,
+}
 def answer_routed_question(question: str) -> dict:
     """
     Route a question, retrieve the correct context, and generate
@@ -190,6 +197,7 @@ Context:
     return {
         "answer": response.content,
         "route": retrieval_result["route"],
+        "query_intent": retrieval_result["query_intent"], 
         "rewritten_query": retrieval_result["rewritten_query"],
         "local_documents": retrieval_result["local_documents"],
         "web_results": retrieval_result["web_results"],

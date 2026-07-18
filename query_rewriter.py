@@ -3,6 +3,7 @@
 from dotenv import load_dotenv
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
+from query_intent import QueryIntent, detect_query_intent
 
 
 # Load environment variables from the local .env file.
@@ -23,32 +24,51 @@ query_rewriter_prompt = ChatPromptTemplate.from_messages(
             """
 You rewrite pharmacology questions into focused web search queries.
 
-Your goal is to improve retrieval quality for current medical and drug-safety information.
+The detected intent is: {intent}
 
-Rules:
+Intent-specific rules:
+
+- fda_warning:
+  Focus on the latest FDA warning, safety communication, recall, label update,
+  boxed warning, or regulatory action.
+
+- adverse_effect:
+  Focus on recent adverse effects, toxicity, safety evidence,
+  pharmacovigilance findings, or adverse-event data.
+
+- drug_interaction:
+  Focus on drug-drug interactions, contraindications,
+  interaction mechanisms, and current clinical guidance.
+
+- clinical_trial:
+  Focus on the latest clinical trials, study results,
+  trial phases, efficacy, and safety findings.
+
+- comparison:
+  Focus on recent clinical evidence comparing the named drugs,
+  including efficacy, pharmacology, and safety when requested.
+
+- general:
+  Preserve the original pharmacology topic and create a concise,
+  medically relevant search query.
+
+General rules:
 1. Return only the rewritten search query.
 2. Do not answer the question.
-3. Remove conversational wording such as:
-   - compare
-   - explain
-   - tell me
-   - what is
-   - can you
-4. Preserve drug names, indications, adverse effects, agencies, and dates.
-5. Add useful current-evidence terms when appropriate, such as:
-   - latest
-   - safety update
-   - FDA
-   - EMA
-   - clinical evidence
-   - adverse events
-6. Keep the query concise.
-7. Do not add facts that were not present in the original question.
+3. Preserve drug names, agencies, indications, adverse effects, and dates.
+4. Never add a year, date, drug name, indication, or agency that was not
+   present in the original question.
+5. Do not add brand-to-generic or generic-to-brand mappings unless both
+   names were present in the original question.
+6. Remove unnecessary conversational wording.
+7. Keep the query concise and natural.
+8. Avoid broad phrases such as "comprehensive list."
+9. Do not invent facts.
 """,
         ),
         (
             "human",
-            "Original question: {question}"
+            "Original question: {question}",
         ),
     ]
 )
@@ -60,32 +80,32 @@ query_rewriter_chain = (
 )
 
 
-def rewrite_web_query(question: str) -> str:
+def rewrite_web_query(question: str) -> tuple[str, QueryIntent]:
     """
-    Rewrite a user question into a focused web search query.
-
-    Args:
-        question: Original user question.
+    Rewrite a user question into an intent-aware web search query.
 
     Returns:
-        Rewritten search query.
+        Tuple containing:
+        - rewritten search query
+        - detected query intent
     """
     cleaned_question = question.strip()
 
     if not cleaned_question:
-        raise ValueError(
-            "Question cannot be empty."
-        )
+        raise ValueError("Question cannot be empty.")
+
+    intent = detect_query_intent(cleaned_question)
 
     response = query_rewriter_chain.invoke(
         {
-            "question": cleaned_question
+            "question": cleaned_question,
+            "intent": intent.value,
         }
     )
 
     rewritten_query = response.content.strip()
 
     if not rewritten_query:
-        return cleaned_question
+        rewritten_query = cleaned_question
 
-    return rewritten_query
+    return rewritten_query, intent

@@ -1,19 +1,24 @@
+from query_intent import detect_query_intent
 from query_rewriter import rewrite_web_query
 
 
 def main():
     test_questions = [
-        "Compare metformin pharmacology with recent safety evidence.",
         "What is the latest FDA warning for semaglutide?",
-        "Tell me about current GLP-1 receptor agonist warnings.",
-        "Was Ozempic approved for a new indication in 2026?",
+        "What are the adverse effects of Ozempic?",
+        "What drugs interact with warfarin?",
+        "What is the latest clinical trial for tirzepatide?",
+        "Compare metformin and semaglutide.",
+        "What is the mechanism of action of metformin?",
     ]
 
     for question in test_questions:
-        rewritten_query = rewrite_web_query(question)
+        
+        rewritten_query, detected_intent = rewrite_web_query(question)
 
         print("=" * 100)
         print(f"Original question: {question}")
+        print(f"Detected intent: {detected_intent.value}")
         print(f"Rewritten query: {rewritten_query}")
 
 
