@@ -16,6 +16,9 @@ from hybrid_retriever import (
     load_documents_from_chroma,
     retrieve_hybrid_documents,
 )
+from context_fusion import build_fused_context
+from router import route_question
+from web_search import search_web
 
 
 # ------------------------------------------------------------
@@ -90,6 +93,101 @@ def run_hybrid_retrieval(chain_input: dict):
     )
 
 
+def retrieve_routed_context(question: str) -> dict:
+    """
+    Route the user's question and retrieve the appropriate context.
+
+    Possible routes:
+    - local: hybrid retrieval only
+    - web: Tavily search only
+    - both: hybrid retrieval and Tavily search
+    """
+    cleaned_question = question.strip()
+
+    if not cleaned_question:
+        raise ValueError("Question cannot be empty.")
+
+    route = route_question(cleaned_question)
+
+    local_documents = []
+    web_results = []
+
+    if route in {"local", "both"}:
+        local_documents = retrieve_hybrid_documents(
+            query=cleaned_question,
+            vector_retriever=vector_retriever,
+            bm25_retriever=bm25_retriever,
+            vector_weight=0.5,
+            bm25_weight=0.5,
+            final_result_count=5,
+        )
+
+    if route in {"web", "both"}:
+        web_results = search_web(
+            query=cleaned_question,
+            max_results=5,
+        )
+
+    fused_context = build_fused_context(
+        local_documents=local_documents,
+        web_results=web_results,
+    )
+
+    return {
+        "route": route,
+        "local_documents": local_documents,
+        "web_results": web_results,
+        "fused_context": fused_context,
+    }
+
+def answer_routed_question(question: str) -> dict:
+    """
+    Route a question, retrieve the correct context, and generate
+    a grounded answer using GPT-5 Nano.
+    """
+    retrieval_result = retrieve_routed_context(question)
+
+    answer_prompt = ChatPromptTemplate.from_messages(
+        [
+            (
+                "system",
+                """
+You are PharmacologyGPT, a pharmacology question-answering assistant.
+
+Answer the user's question using only the provided context.
+
+Rules:
+1. Do not use information outside the provided context.
+2. Clearly distinguish textbook knowledge from current web information.
+3. If the context does not contain enough information, say so.
+4. Do not invent drug facts, warnings, approvals, dosages, or medical advice.
+5. When web information is used, mention that it comes from current web sources.
+6. Give a clear and concise answer.
+
+Context:
+{context}
+""",
+            ),
+            ("human", "{question}"),
+        ]
+    )
+
+    answer_chain = answer_prompt | llm
+
+    response = answer_chain.invoke(
+        {
+            "question": question,
+            "context": retrieval_result["fused_context"],
+        }
+    )
+
+    return {
+        "answer": response.content,
+        "route": retrieval_result["route"],
+        "local_documents": retrieval_result["local_documents"],
+        "web_results": retrieval_result["web_results"],
+        "fused_context": retrieval_result["fused_context"],
+    }
 # Convert the Python retrieval function into a LangChain Runnable.
 # create_retrieval_chain can use this object like a normal retriever.
 retriever = RunnableLambda(run_hybrid_retrieval)

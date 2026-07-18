@@ -16,7 +16,8 @@ from pathlib import Path
 
 import streamlit as st
 
-from rag import rag_chain
+# from rag import rag_chain
+from rag import answer_routed_question
 from pdf_utils import (
     add_pdf_to_vectorstore,
     get_vectorstore_statistics,
@@ -231,17 +232,25 @@ if st.button("Ask"):
 
     else:
 
-        # Run the question through the RAG pipeline.
+        # # Run the question through the RAG pipeline.
+        # with st.spinner(
+        #     "Searching the documents..."
+        # ):
+
+        #     response = rag_chain.invoke(
+        #         {
+        #             "input": question
+        #         }
+        #     )
+        # Route the question, retrieve the appropriate sources,
+        # and generate a grounded answer.
         with st.spinner(
-            "Searching the documents..."
-        ):
+        "Searching local documents and trusted web sources..."
+       ):
 
-            response = rag_chain.invoke(
-                {
-                    "input": question
-                }
-            )
-
+         response = answer_routed_question(
+          question
+       ) 
 
         # -------------------------------------------------
         # Display the generated answer
@@ -255,15 +264,31 @@ if st.button("Ask"):
 
 
         # -------------------------------------------------
-        # Collect unique source citations
+        # Display retrieval route
         # -------------------------------------------------
 
-        unique_sources = set()
+        route_labels = {
+            "local": "📚 Local knowledge",
+            "web": "🌐 Web knowledge",
+            "both": "📚 Local + 🌐 Web knowledge",
+        }
 
-        for document in response["context"]:
+        st.caption(
+            f"Retrieval route: "
+            f"{route_labels.get(response['route'], response['route'])}"
+        )
 
-            # Extract only the PDF filename instead of
-            # displaying the complete file path.
+
+        # -------------------------------------------------
+        # Collect unique local PDF citations
+        # -------------------------------------------------
+
+        unique_local_sources = set()
+
+        for document in response["local_documents"]:
+
+            # Display only the PDF filename rather than
+            # the complete local file path.
             source_name = Path(
                 document.metadata.get(
                     "source",
@@ -271,8 +296,7 @@ if st.button("Ask"):
                 )
             ).name
 
-            # LangChain page numbers begin at zero.
-            # Add one so users see normal page numbering.
+            # LangChain PDF page indexes normally begin at zero.
             page_number = document.metadata.get(
                 "page"
             )
@@ -285,8 +309,7 @@ if st.button("Ask"):
 
                 page_number = "Unknown"
 
-            # A set removes duplicate citations.
-            unique_sources.add(
+            unique_local_sources.add(
                 (
                     source_name,
                     page_number
@@ -295,11 +318,11 @@ if st.button("Ask"):
 
 
         # -------------------------------------------------
-        # Sort source citations
+        # Sort local PDF citations
         # -------------------------------------------------
 
-        sorted_sources = sorted(
-            unique_sources,
+        sorted_local_sources = sorted(
+            unique_local_sources,
             key=lambda source: (
                 source[0].lower(),
                 str(source[1])
@@ -308,17 +331,124 @@ if st.button("Ask"):
 
 
         # -------------------------------------------------
-        # Display sources in an expandable section
+        # Display local PDF sources
         # -------------------------------------------------
 
-        with st.expander(
-            f"📄 View Sources "
-            f"({len(sorted_sources)})"
-        ):
+        if sorted_local_sources:
 
-            for source_name, page_number in sorted_sources:
+            with st.expander(
+                f"📚 Local Sources "
+                f"({len(sorted_local_sources)})"
+            ):
 
-                st.write(
-                    f"• {source_name} "
-                    f"— Page {page_number}"
-                )
+                for source_name, page_number in sorted_local_sources:
+
+                    st.write(
+                        f"• {source_name} "
+                        f"— Page {page_number}"
+                    )
+
+
+        # -------------------------------------------------
+        # Display web sources
+        # -------------------------------------------------
+
+        if response["web_results"]:
+
+            with st.expander(
+                f"🌐 Web Sources "
+                f"({len(response['web_results'])})"
+            ):
+
+                for web_result in response["web_results"]:
+
+                    title = web_result.get(
+                        "title",
+                        "Untitled source"
+                    )
+
+                    url = web_result.get(
+                        "url",
+                        ""
+                    )
+
+                    if url:
+
+                        st.markdown(
+                            f"- [{title}]({url})"
+                        )
+
+                    else:
+
+                        st.write(
+                            f"• {title}"
+                        )
+
+        # # -------------------------------------------------
+        # # Collect unique source citations
+        # # -------------------------------------------------
+
+        # unique_sources = set()
+
+        # for document in response["context"]:
+
+        #     # Extract only the PDF filename instead of
+        #     # displaying the complete file path.
+        #     source_name = Path(
+        #         document.metadata.get(
+        #             "source",
+        #             "Unknown source"
+        #         )
+        #     ).name
+
+        #     # LangChain page numbers begin at zero.
+        #     # Add one so users see normal page numbering.
+        #     page_number = document.metadata.get(
+        #         "page"
+        #     )
+
+        #     if page_number is not None:
+
+        #         page_number += 1
+
+        #     else:
+
+        #         page_number = "Unknown"
+
+        #     # A set removes duplicate citations.
+        #     unique_sources.add(
+        #         (
+        #             source_name,
+        #             page_number
+        #         )
+        #     )
+
+
+        # # -------------------------------------------------
+        # # Sort source citations
+        # # -------------------------------------------------
+
+        # sorted_sources = sorted(
+        #     unique_sources,
+        #     key=lambda source: (
+        #         source[0].lower(),
+        #         str(source[1])
+        #     )
+        # )
+
+
+        # # -------------------------------------------------
+        # # Display sources in an expandable section
+        # # -------------------------------------------------
+
+        # with st.expander(
+        #     f"📄 View Sources "
+        #     f"({len(sorted_sources)})"
+        # ):
+
+        #     for source_name, page_number in sorted_sources:
+
+        #         st.write(
+        #             f"• {source_name} "
+        #             f"— Page {page_number}"
+        #         )
