@@ -7,6 +7,7 @@ def print_result(question: str) -> None:
     print("=" * 100)
     print(f"Question: {question}")
     print(f"Route: {result['route']}")
+    print(f"Rewritten query: {result['rewritten_query']}")
     print(f"Local documents: {len(result['local_documents'])}")
     print(f"Web results: {len(result['web_results'])}")
     print("\nFused context preview:\n")

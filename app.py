@@ -276,7 +276,12 @@ if st.button("Ask"):
         st.caption(
             f"Retrieval route: "
             f"{route_labels.get(response['route'], response['route'])}"
-        )
+           )
+        # Show the rewritten web search query (only for web/both routes)
+        if response["rewritten_query"]:
+         st.caption(
+        f"🔎 Web search query: {response['rewritten_query']}"
+       )
 
 
         # -------------------------------------------------

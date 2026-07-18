@@ -19,6 +19,7 @@ from hybrid_retriever import (
 from context_fusion import build_fused_context
 from router import route_question
 from web_search import search_web
+from query_rewriter import rewrite_web_query
 
 
 # ------------------------------------------------------------
@@ -98,9 +99,9 @@ def retrieve_routed_context(question: str) -> dict:
     Route the user's question and retrieve the appropriate context.
 
     Possible routes:
-    - local: hybrid retrieval only
-    - web: Tavily search only
-    - both: hybrid retrieval and Tavily search
+    - local: Hybrid retrieval only.
+    - web: Web search only.
+    - both: Hybrid retrieval and web search.
     """
     cleaned_question = question.strip()
 
@@ -111,7 +112,9 @@ def retrieve_routed_context(question: str) -> dict:
 
     local_documents = []
     web_results = []
+    rewritten_query = None
 
+    # Retrieve documents from the local vector database.
     if route in {"local", "both"}:
         local_documents = retrieve_hybrid_documents(
             query=cleaned_question,
@@ -122,12 +125,16 @@ def retrieve_routed_context(question: str) -> dict:
             final_result_count=5,
         )
 
+    # Rewrite the query before performing a web search.
     if route in {"web", "both"}:
+        rewritten_query = rewrite_web_query(cleaned_question)
+
         web_results = search_web(
-            query=cleaned_question,
+            query=rewritten_query,
             max_results=5,
         )
 
+    # Combine local and web context into a single prompt context.
     fused_context = build_fused_context(
         local_documents=local_documents,
         web_results=web_results,
@@ -135,11 +142,11 @@ def retrieve_routed_context(question: str) -> dict:
 
     return {
         "route": route,
+        "rewritten_query": rewritten_query,
         "local_documents": local_documents,
         "web_results": web_results,
         "fused_context": fused_context,
     }
-
 def answer_routed_question(question: str) -> dict:
     """
     Route a question, retrieve the correct context, and generate
@@ -180,14 +187,14 @@ Context:
             "context": retrieval_result["fused_context"],
         }
     )
-
     return {
         "answer": response.content,
         "route": retrieval_result["route"],
+        "rewritten_query": retrieval_result["rewritten_query"],
         "local_documents": retrieval_result["local_documents"],
         "web_results": retrieval_result["web_results"],
         "fused_context": retrieval_result["fused_context"],
-    }
+  }
 # Convert the Python retrieval function into a LangChain Runnable.
 # create_retrieval_chain can use this object like a normal retriever.
 retriever = RunnableLambda(run_hybrid_retrieval)
